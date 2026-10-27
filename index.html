@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>astrojavii | Sitio Personal</title>
+	<link rel="stylesheet" href="estilo/estilo.css">
+</head>
+<body>
+	<header class="cabecera">
+		<div class="cabecera__interior">
+			<a class="marca" href="index.html">Astrojavi's page</a>
+			<nav aria-label="Navegación principal">
+				<ul>
+					<li><a href="#galeria">Galería de Seko</a></li>
+				</ul>
+			</nav>
+		</div>
+	</header>
+
+	<main class="layout-container">
+		<div class="columna-principal">
+			<section id="galeria" class="galeria-psp">
+				<h2>Galería de Seko</h2>
+				<div class="psp-container">
+					<div class="psp-screen-area">
+						<img id="psp-photo" alt="" hidden>
+						<div class="psp-empty-state" id="psp-empty-state">
+							<p>Tu galería está vacía</p>
+							<span>Añade fotos como imagenes/foto1.jpg hasta foto10.jpg</span>
+						</div>
+					</div>
+					<img class="psp-bg" src="imagenes/psp.png" alt="Consola PSP azul">
+					<div class="psp-dpad" aria-label="Cruceta para cambiar fotos" style="position:absolute;inset:0;z-index:4;pointer-events:none">
+						<button type="button" data-photo-direction="-1" aria-label="Foto anterior" style="position:absolute;left:8.7%;top:29.5%;width:8.5%;height:12.5%;padding:0;border:0;background:transparent;opacity:0;pointer-events:auto"></button>
+						<button type="button" data-photo-direction="-1" aria-label="Foto anterior" style="position:absolute;left:3.7%;top:40%;width:7%;height:13%;padding:0;border:0;background:transparent;opacity:0;pointer-events:auto"></button>
+						<button type="button" data-photo-direction="1" aria-label="Foto siguiente" style="position:absolute;left:13.7%;top:40%;width:7%;height:13%;padding:0;border:0;background:transparent;opacity:0;pointer-events:auto"></button>
+						<button type="button" data-photo-direction="1" aria-label="Foto siguiente" style="position:absolute;left:8.7%;top:49%;width:8.5%;height:12.5%;padding:0;border:0;background:transparent;opacity:0;pointer-events:auto"></button>
+					</div>
+				</div>
+			</section>
+		</div>
+
+		<aside class="columna-derecha" aria-label="Reproductor de música">
+			<div class="ipod-container">
+				<img class="ipod-bg" src="imagenes/ipod.png" alt="iPod azul">
+				<section class="ipod-screen-area" aria-label="Pantalla del reproductor">
+					<div class="ipod-screen-header">
+						<span id="ipod-header-title">Music</span>
+						<span class="battery-icon" role="img" aria-label="Batería llena"></span>
+					</div>
+					<ul class="ipod-menu-list" id="song-list" role="listbox" aria-label="Lista de canciones">
+						<li class="song-item active" role="option" tabindex="0" data-song="musica/1oneam%20-%20Vogue.mp3" data-name="1oneam - Vogue" aria-selected="true">1oneam - Vogue</li>
+						<li class="song-item" role="option" tabindex="0" data-song="musica/Wii%20U%20-%20Mii%20Maker.mp3" data-name="Wii U - Mii Maker" aria-selected="false">Wii U - Mii Maker</li>
+					</ul>
+					<div class="ipod-now-playing" id="now-playing-screen" hidden>
+						<div class="album-art" aria-hidden="true">♪</div>
+						<div class="track-info">
+							<p id="track-title">1oneam - Vogue</p>
+							<p class="track-artist">astrojavii</p>
+						</div>
+						<div class="track-progress" aria-hidden="true"><span id="track-progress-fill"></span></div>
+						<p id="player-status" class="ipod-status-playing" aria-live="polite">Preparado</p>
+					</div>
+				</section>
+
+				<div class="ipod-click-wheel" aria-label="Controles del reproductor">
+					<button class="ipod-btn menu-btn" id="btn-menu" type="button" aria-label="Volver a la lista"></button>
+					<button class="ipod-btn prev-btn" id="btn-prev" type="button" aria-label="Canción anterior"></button>
+					<button class="ipod-btn play-pause-btn" id="btn-playpause" type="button" aria-label="Reproducir o pausar"></button>
+					<button class="ipod-btn next-btn" id="btn-next" type="button" aria-label="Siguiente canción"></button>
+					<button class="ipod-center-btn" id="btn-select" type="button" aria-label="OK: reproducir canción"></button>
+				</div>
+
+				<audio id="audio-player" src="musica/1oneam%20-%20Vogue.mp3" loop preload="metadata"></audio>
+			</div>
+		</aside>
+	</main>
+	<div class="sonic-cursor-overlay" id="sonic-cursor-overlay" aria-hidden="true"></div>
+
+	<script>
+		const pspPhoto = document.getElementById('psp-photo');
+		const pspEmptyState = document.getElementById('psp-empty-state');
+		let pspPhotos = [];
+		let pspPhotoIndex = 0;
+		const audio = document.getElementById('audio-player');
+		const ipodContainer = document.querySelector('.ipod-container');
+		const playerStatus = document.getElementById('player-status');
+		const headerTitle = document.getElementById('ipod-header-title');
+		const songList = document.getElementById('song-list');
+		const nowPlayingScreen = document.getElementById('now-playing-screen');
+		const progressFill = document.getElementById('track-progress-fill');
+		const songItems = [...document.querySelectorAll('.song-item')];
+		let songIndex = 0;
+		let currentScreen = 'list';
+		const sonicCursorOverlay = document.getElementById('sonic-cursor-overlay');
+		const hoverableSelector = 'a, button, [role="button"], [role="option"], label[for], select';
+
+		document.addEventListener('pointermove', (event) => {
+			if (event.pointerType === 'touch') return;
+			const hoverable = event.target instanceof Element && event.target.closest(hoverableSelector);
+			const shouldShowCursor = Boolean(hoverable) && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+			sonicCursorOverlay.classList.toggle('is-visible', shouldShowCursor);
+			if (shouldShowCursor) {
+				sonicCursorOverlay.style.left = `${event.clientX - 2}px`;
+				sonicCursorOverlay.style.top = `${event.clientY - 4}px`;
+			}
+		});
+		document.addEventListener('pointerout', (event) => {
+			if (!event.relatedTarget) sonicCursorOverlay.classList.remove('is-visible');
+		});
+		window.addEventListener('blur', () => sonicCursorOverlay.classList.remove('is-visible'));
+
+		function showPspPhoto(index) {
+			if (pspPhotos.length === 0) return;
+			pspPhotoIndex = index;
+			pspPhoto.src = pspPhotos[pspPhotoIndex];
+			pspPhoto.alt = `Foto ${pspPhotoIndex + 1} de la galería`;
+		}
+
+		async function loadPspGallery() {
+			const photoCandidates = Array.from({ length: 10 }, (_, index) => `imagenes/foto${index + 1}.jpg`);
+			const results = await Promise.all(photoCandidates.map((source) => new Promise((resolve) => {
+				const image = new Image();
+				image.onload = () => resolve(source);
+				image.onerror = () => resolve(null);
+				image.src = source;
+			})));
+			pspPhotos = results.filter(Boolean);
+
+			if (pspPhotos.length === 0) return;
+
+			pspEmptyState.hidden = true;
+			pspPhoto.hidden = false;
+			showPspPhoto(0);
+		}
+
+		document.querySelectorAll('[data-photo-direction]').forEach((button) => {
+			button.addEventListener('click', () => {
+				const direction = Number(button.dataset.photoDirection);
+				showPspPhoto((pspPhotoIndex + direction + pspPhotos.length) % pspPhotos.length);
+			});
+		});
+
+		function setTrack(index) {
+			songIndex = (index + songItems.length) % songItems.length;
+			songItems.forEach((item, itemIndex) => {
+				const isSelected = itemIndex === songIndex;
+				item.classList.toggle('active', isSelected);
+				item.setAttribute('aria-selected', String(isSelected));
+			});
+			const selectedSong = songItems[songIndex];
+			audio.src = selectedSong.dataset.song;
+			document.getElementById('track-title').textContent = selectedSong.dataset.name;
+			playerStatus.textContent = `Seleccionada: ${selectedSong.dataset.name}`;
+		}
+
+		function playSelectedSong() {
+			currentScreen = 'player';
+			songList.hidden = true;
+			nowPlayingScreen.hidden = false;
+			headerTitle.textContent = 'Now Playing';
+			playerStatus.textContent = 'Cargando…';
+			audio.play().catch((error) => {
+				playerStatus.textContent = error.name === 'NotAllowedError' ? 'Pulsa ▶ para reproducir' : 'Audio no disponible';
+			});
+		}
+
+		function showSongList() {
+			currentScreen = 'list';
+			nowPlayingScreen.hidden = true;
+			songList.hidden = false;
+			headerTitle.textContent = 'Music';
+		}
+
+		function browseTrack(direction) {
+			setTrack(songIndex + direction);
+			if (currentScreen === 'player') playSelectedSong();
+		}
+
+		document.getElementById('btn-menu').addEventListener('click', showSongList);
+		document.getElementById('btn-next').addEventListener('click', () => browseTrack(1));
+		document.getElementById('btn-prev').addEventListener('click', () => browseTrack(-1));
+		document.getElementById('btn-select').addEventListener('click', () => {
+			if (currentScreen === 'list') playSelectedSong();
+		});
+		document.getElementById('btn-playpause').addEventListener('click', () => {
+			if (audio.paused) playSelectedSong();
+			else audio.pause();
+		});
+		songItems.forEach((item, index) => {
+			item.addEventListener('click', () => setTrack(index));
+			item.addEventListener('keydown', (event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					setTrack(index);
+					playSelectedSong();
+				}
+			});
+		});
+
+		audio.addEventListener('play', () => ipodContainer.classList.add('is-playing'));
+		audio.addEventListener('pause', () => ipodContainer.classList.remove('is-playing'));
+		audio.addEventListener('error', () => {
+			playerStatus.textContent = 'Audio no disponible';
+		});
+		audio.addEventListener('timeupdate', () => {
+			if (audio.duration) progressFill.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+		});
+		loadPspGallery();
+	</script>
+</body>
+</html>
